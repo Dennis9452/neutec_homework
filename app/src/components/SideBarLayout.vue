@@ -13,103 +13,16 @@
         <button class="close-button" @click="toggleSidebar">×</button>
       </div>
       <div class="sidebar-content">
-        <div 
-          v-for="item in modifiedData" 
-          :key="item.key"
-          class="menu-item"
-        >
-          <div 
-            :class="['menu-item-content', { 'has-children': item.children && item.children.length > 0 }]"
-            :style="{ paddingLeft: '20px' }"
-            @click="() => toggleExpand(item.key, item.stage)"
-          >
-            <span class="menu-text" :class="[{ isSelected: checkIfSelected(item)}]">{{ item.text }}</span>
-            <svg 
-              v-if="item.children && item.children.length > 0"
-              :class="['expand-icon', { expanded: expandedItems[item.stage] === item.key }]"
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor"
-            >
-              <polyline points="9,18 15,12 9,6"></polyline>
-            </svg>
-          </div>
-          
-          <!-- 第二層 -->
-          <div v-if="item.children && expandedItems[item.stage] === item.key" class="menu-children">
-            <div 
-              v-for="child in item.children" 
-              :key="child.key"
-              class="menu-item"
-            >
-              <div 
-                :class="['menu-item-content', { 'has-children': child.children && child.children.length > 0 }]"
-                :style="{ paddingLeft: '40px' }"
-                @click="() => toggleExpand(child.key, child.stage)"
-              >
-                <span class="menu-text" :class="[{ isSelected: checkIfSelected(child)}]">{{ child.text }}</span>
-                <svg 
-                  v-if="child.children && child.children.length > 0"
-                  :class="['expand-icon', { expanded: expandedItems[child.stage] === child.key }]"
-                  width="16" 
-                  height="16" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor"
-                >
-                  <polyline points="9,18 15,12 9,6"></polyline>
-                </svg>
-              </div>
-              
-              <!-- 第三層 -->
-              <div v-if="child.children && expandedItems[child.stage] === child.key" class="menu-children">
-                <div 
-                  v-for="grandChild in child.children" 
-                  :key="grandChild.key"
-                  class="menu-item"
-                >
-                  <div 
-                    :class="['menu-item-content', { 'has-children': grandChild.children && grandChild.children.length > 0 }]"
-                    :style="{ paddingLeft: '60px' }"
-                    @click="() => toggleExpand(grandChild.key, grandChild.stage)"
-                  >
-                    <span class="menu-text" :class="[{ isSelected: checkIfSelected(grandChild)}]">{{ grandChild.text }}</span>
-                    <svg 
-                      v-if="grandChild.children && grandChild.children.length > 0"
-                      :class="['expand-icon', { expanded: expandedItems[grandChild.stage] === grandChild.key }]"
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor"
-                    >
-                      <polyline points="9,18 15,12 9,6"></polyline>
-                    </svg>
-                  </div>
-                  
-                  <!-- 第四層 -->
-                  <div v-if="grandChild.children && expandedItems[grandChild.stage] === grandChild.key " class="menu-children">
-                    <div 
-                      v-for="greatGrandChild in grandChild.children" 
-                      :key="greatGrandChild.key"
-                      class="menu-item"
-                    >
-                      <div 
-                        class="menu-item-content"
-                        :style="{ paddingLeft: '80px' }"
-                        @click="() => toggleExpand(greatGrandChild.key, greatGrandChild.stage)"
-                      >
-                        <span class="menu-text" :class="[{ isSelected: checkIfSelected(greatGrandChild)}]">{{ greatGrandChild.text }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MenuItemRecursive
+          v-for="child in modifiedData"
+          :key="child.key"
+          :data="child"
+          :depth="1"
+          @toggle="toggleExpand" 
+          :check-selected="checkIfSelected" 
+          :expanded-items="expandedItems"
+          :now-selected="nowSelected"
+        />
       </div>
     </div>
 
@@ -145,6 +58,7 @@
 </script>
 
 <script setup>
+import MenuItemRecursive from './MenuItemRecursive.vue'
 import { computed, ref } from 'vue'
 
 // 響應式數據
@@ -247,7 +161,7 @@ const modifiedData = computed(() => {
     }
   })
 })
-const nowSelcted = ref(JSON.parse(localStorage.getItem('sidebarExpandedItems')) || {})
+const nowSelected = ref(JSON.parse(localStorage.getItem('sidebarExpandedItems')) || {})
 
 // 方法
 const parseChildren = (children, stage) => {
@@ -264,36 +178,44 @@ const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-const toggleExpand = (key, stage) => {
-  checkStageOnlySelected(key, stage)
-  
-  expandedItems.value[stage] = key
-  for(const sKey in expandedItems.value) {
-    if (stage < parseInt(sKey)) {
-      delete expandedItems.value[sKey]
+const toggleExpand = (item) => {
+    checkStageOnlySelected(item.key, item.stage)
+    if( expandedItems.value[item.stage] === item.key) {
+        delete expandedItems.value[item.stage]
+        if(!(item.children && item.children.length > 0)) {
+          // 如果沒有子項目，則維持當前階段的選擇
+          nowSelected.value[item.stage] = item.key
+        } else {
+          // 如果有子項目，則清除當前階段的選擇
+          delete nowSelected.value[item.stage]
+        }
+    } else {
+      expandedItems.value[item.stage] = item.key
+      for(const sKey in expandedItems.value) {
+          if (item.stage < parseInt(sKey)) {
+              delete expandedItems.value[sKey]
+          }
+      }
     }
-  }
-  localStorage.setItem('sidebarExpandedItems', JSON.stringify(expandedItems.value))
+    localStorage.setItem('sidebarExpandedItems', JSON.stringify(expandedItems.value))
 }
 
 const checkStageOnlySelected = (key, stage) => {
-  // 清除如果為不同父層的內容
-  for(const sKey in nowSelcted.value) {
-    if (sKey.startsWith(stage) || stage < parseInt(sKey)) {
-      delete nowSelcted.value[sKey]
+    // 清除如果為不同父層的內容
+    for(const sKey in nowSelected.value) {
+        if (sKey.startsWith(stage) || stage < parseInt(sKey)) {
+            delete nowSelected.value[sKey]
+        }
     }
-  }
-  if (nowSelcted.value[stage]) {
-    nowSelcted.value[stage] = key
+    if (nowSelected.value[stage]) {
+        nowSelected.value[stage] = key
 
-  } else {
-    nowSelcted.value[stage] = key
-  }
+    } else {
+        nowSelected.value[stage] = key
+    }
 }
 
-const checkIfSelected = (item) => {
-  return nowSelcted.value[item.stage] === item.key
-}
+const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 </script>
 
 <style scoped>
@@ -378,8 +300,9 @@ const checkIfSelected = (item) => {
     background: radial-gradient(circle, rgba(113,81,95,1) 81%, rgba(0,0,0,1) 100%);
     position: relative;
 }
+
 .grid-cell.blink {
-    animation: blink 0.5s infinite;
+    animation: blink 0.5s infinite ease-in-out;
 }
 
 @keyframes blink {
@@ -499,51 +422,6 @@ const checkIfSelected = (item) => {
   background: rgba(0, 0, 0, 0.1);
 }
 
-.sidebar-content {
-  padding: 20px 0;
-}
-
-.menu-item {
-  margin-bottom: 2px;
-}
-
-.menu-item-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-left: 3px solid transparent;
-}
-
-.menu-item-content:hover {
-  background-color: #f8f9fa;
-}
-
-.menu-item-content.has-children:hover {
-  background-color: #e3f2fd;
-}
-
-.menu-text {
-  font-size: 15px;
-  color: #333;
-  font-weight: 500;
-}
-
-.expand-icon {
-  transition: transform 0.2s ease;
-  color: #666;
-}
-
-.expand-icon.expanded {
-  transform: rotate(90deg);
-}
-
-.menu-children {
-  background-color: #f8f9fa;
-  border-left: 2px solid #e3f2fd;
-}
 
 .overlay {
   position: fixed;
@@ -563,19 +441,10 @@ const checkIfSelected = (item) => {
   visibility: visible;
 }
 
-.isSelected {
-  color: #42b883; /* Vue.js 綠色 */
-  font-weight: bold;
-}
-
 /* 手機版優化 */
 @media (max-width: 390px) {
   .sidebar {
     width: 50%;
-  }
-  
-  .main-content.shifted {
-    /* transform: translateX(50%); */
   }
 }
 </style>
