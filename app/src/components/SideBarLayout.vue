@@ -16,9 +16,9 @@
         <div class="sidebar-selection">
           <div> 快速選項 </div>  
           <div> 
-            <select style="height:30px; width: 160px; margin:5px"v-model="selectionValue" @change="onSelected">
-              <option v-for="stage in selectionData" :key="stage[stage.length - 1]._label" :value="JSON.stringify(stage)">
-                {{ stage[stage.length - 1]._label }} 
+            <select style="height:30px; width: 160px; margin:5px" v-model="selectionValue" @change="onSelected">
+              <option v-for="option in selectionData" :key="option[option.length - 1]._label" :value="JSON.stringify(option)">
+                {{ option[option.length - 1]._label }} 
               </option>
             </select>
           </div>
@@ -52,10 +52,10 @@
           </div>
         
           <!-- 四個角落的球 -->
-          <div class="ball top-left">1</div>
-          <div class="ball top-right">1</div>
-          <div class="ball bottom-left">1</div>
-          <div class="ball bottom-right">1</div>
+          <div class="ball top-left parallel">1</div>
+          <div class="ball top-right parallel">1</div>
+          <div class="ball bottom-left parallel">1</div>
+          <div class="ball bottom-right parallel">1</div>
         </div>
       </div>
     </div>
@@ -194,6 +194,7 @@ const modifiedData = computed(() => {
 })
 const selectionData = computed(() => getAllPaths(menuData))
 const nowSelected = ref(JSON.parse(localStorage.getItem('sidebarExpandedItems')) || {})
+const selectionValue = ref('')
 
 // 方法
 const parseChildren = (children, stage) => {
@@ -221,6 +222,7 @@ const toggleSidebar = () => {
 
 const toggleExpand = (item, fromSelect) => {
     checkStageOnlySelected(item.key, item.stage)
+    setSelectionValue(item)
     if( !fromSelect && expandedItems.value[item.stage] === item.key) {
         delete expandedItems.value[item.stage]
         if(!(item.children && item.children.length > 0)) {
@@ -256,6 +258,16 @@ const checkStageOnlySelected = (key, stage) => {
     }
 }
 
+const setSelectionValue = (item) => {
+  const selectedPath = []
+  selectionData.value.forEach(path => {
+    if (path[path.length - 1].key === item.key && path[path.length - 1].stage === item.stage) {
+      selectedPath.push(...path)
+    }
+  })
+  selectionValue.value = JSON.stringify(selectedPath)
+}
+
 const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 </script>
 
@@ -273,6 +285,8 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
   height: 100%;
   position: relative;
   transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -282,7 +296,7 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  /* padding: 0 20px; */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .menuButton {
@@ -314,7 +328,6 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
     justify-content: center;
     padding: 20px;
     position: relative;
-    margin: 50% auto;
 }
 
 .nine-grid-container {
@@ -336,7 +349,8 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 
 .grid-cell {
     width: 100%;
-    height: 100px;
+    height: 100%;
+    min-height: 100px;
     border: black solid 2px;
     background: radial-gradient(circle, rgba(113,81,95,1) 81%, rgba(0,0,0,1) 100%);
     position: relative;
@@ -357,10 +371,8 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
     background-color: #A5F12B;
     border-radius: 50%;
     position: absolute;
-    top: 50%;
-    left: 20px;
     box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-    color: black
+    color: black;
 }
 @keyframes moveRight {
     100% { margin-left: 18rem; }
@@ -404,7 +416,7 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
     /* animation-delay: 4s; */
 }
 
-.top-left, .top-right, .bottom-left, .bottom-right {
+.parallel {
     animation-name: moveRight, pulse-dot;
     animation-duration: 1.5s, 1.5s;
     animation-iteration-count: infinite, infinite;
@@ -416,26 +428,24 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 .sidebar {
   position: fixed;
   top: 0;
-  right: -390px;
-  width: 50%;
+  right: -195px;
+  width: 195px;
   height: 100%;
   background: white;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  transition: right 0.3s ease;
   z-index: 1000;
   overflow-y: auto;
 }
 
 .sidebar.open {
-  transform: translateX(-24.7rem);
+  right: 0;
 }
 
 .sidebar-header {
   height: 60px;
   background: #f8f9fa;
   display: flex;
-  flex-direction: row-reverse;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
