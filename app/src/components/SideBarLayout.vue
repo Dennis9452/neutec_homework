@@ -13,6 +13,16 @@
         <button class="close-button" @click="toggleSidebar">×</button>
       </div>
       <div class="sidebar-content">
+        <div class="sidebar-selection">
+          <div> 快速選項 </div>  
+          <div> 
+            <select style="height:30px; width: 160px; margin:5px"v-model="selectionValue" @change="onSelected">
+              <option v-for="stage in selectionData" :key="stage[stage.length - 1]._label" :value="JSON.stringify(stage)">
+                {{ stage[stage.length - 1]._label }} 
+              </option>
+            </select>
+          </div>
+        </div>
         <MenuItemRecursive
           v-for="child in modifiedData"
           :key="child.key"
@@ -150,6 +160,27 @@ const menuData = [
     }]
   }
 ]
+function getAllPaths(data, currentPath = [], allPaths = [], stage = 1) {
+  
+  data.forEach(item => {
+    const newPath = [...currentPath, {
+      text: item.text,
+      stage,
+      key: item.key,
+      _label: item.text,
+      _value: `${stage}-${item.key}`
+    }];
+    
+    // 葉子節點，保存完整路徑
+    allPaths.push(newPath)
+
+    if (item.children && item.children.length > 0) {
+      getAllPaths(item.children, newPath, allPaths, stage + 1)
+    } 
+    
+  })
+  return allPaths
+}
 
 const modifiedData = computed(() => {
   const stage = 1
@@ -161,6 +192,7 @@ const modifiedData = computed(() => {
     }
   })
 })
+const selectionData = computed(() => getAllPaths(menuData))
 const nowSelected = ref(JSON.parse(localStorage.getItem('sidebarExpandedItems')) || {})
 
 // 方法
@@ -174,13 +206,22 @@ const parseChildren = (children, stage) => {
     }
   })
 }
+const onSelected = (event) => {
+  const selectedValue = JSON.parse(event.target.value)
+  if (selectedValue) {
+    selectedValue.forEach(item => {
+      toggleExpand(item, true)
+    })
+  }
+}
+
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-const toggleExpand = (item) => {
+const toggleExpand = (item, fromSelect) => {
     checkStageOnlySelected(item.key, item.stage)
-    if( expandedItems.value[item.stage] === item.key) {
+    if( !fromSelect && expandedItems.value[item.stage] === item.key) {
         delete expandedItems.value[item.stage]
         if(!(item.children && item.children.length > 0)) {
           // 如果沒有子項目，則維持當前階段的選擇
@@ -420,6 +461,13 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 
 .close-button:hover {
   background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-selection {
+  padding: 10px;
+  font-size: 15px;
+  color: #011325;
+  border-bottom: 1px solid #e9ecef;
 }
 
 
