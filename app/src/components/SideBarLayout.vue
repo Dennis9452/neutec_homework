@@ -349,8 +349,7 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 
 .grid-cell {
     width: 100%;
-    height: 100%;
-    min-height: 100px;
+    height: 100px;
     border: black solid 2px;
     background: radial-gradient(circle, rgba(113,81,95,1) 81%, rgba(0,0,0,1) 100%);
     position: relative;
@@ -376,10 +375,6 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
 }
 @keyframes moveRight {
     100% { margin-left: 18rem; }
-}
-@keyframes moveRightLate {
-    0% { transform: translateX(-20rem); }
-    100% { transform: translateX(26rem); }
 }
 
 @keyframes pulse-dot {
@@ -415,6 +410,16 @@ const checkIfSelected = (item) => nowSelected.value[item.stage] === item.key
     left: 305px;
     /* animation-delay: 4s; */
 }
+
+@keyframes toCenter {
+    to { top: 50%;
+    left: 50%; }
+}
+
+.animate-to-center {
+    animation: toCenter 1.5s ease-in-out infinite;
+}
+
 
 .parallel {
     animation-name: moveRight, pulse-dot;
